@@ -1,4 +1,24 @@
-const employees = [
+export type Status = 'new' | 'in_progress' | 'done';
+
+export type Employee = {
+    id: number;
+    fullName: string;
+    department: string;
+    position: string;
+};
+
+export type Request = {
+    id: number;
+    number: string;
+    createdAt: Date;
+    authorId: number;
+    executorId: number;
+    description: string;
+    deadline: Date;
+    status: Status;
+};
+
+export const employees: Employee[] = [
     { id: 1, fullName: 'Иванов Иван Иванович', department: 'IT', position: 'Разработчик' },
     { id: 2, fullName: 'Петрова Ольга Сергеевна', department: 'Бухгалтерия', position: 'Главный бухгалтер' },
     { id: 3, fullName: 'Сидоров Петр Алексеевич', department: 'Отдел продаж', position: 'Менеджер' },
@@ -6,7 +26,7 @@ const employees = [
     { id: 5, fullName: 'Михайлов Дмитрий Николаевич', department: 'IT', position: 'Тестировщик' },
 ];
 
-const requests = [
+export const requests: Request[] = [
     {
         id: 1,
         number: 'REQ-001',
@@ -41,8 +61,6 @@ const requests = [
 
 let nextRequestId = 4;
 
-module.exports = {
-    employees,
-    requests,
-    nextRequestId,
-};
+export function getNextRequestId(): number {
+    return nextRequestId++;
+}

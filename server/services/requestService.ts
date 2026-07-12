@@ -1,13 +1,22 @@
-const { requests, nextRequestId } = require('../data/mock');
-const { getEmployeeById } = require('./employeeService');
+import { requests, getNextRequestId, Request, Employee } from '../data/mock';
+import { getEmployeeById } from './employeeService';
 
-const allowedStatusTransitions = {
+type Status = Request['status'];
+
+const allowedStatusTransitions: Record<Status, Status[]> = {
     new: ['in_progress'],
     in_progress: ['done'],
     done: [],
 };
 
-const getRequests = (filters = {}) => {
+interface RequestFilters {
+    status?: Status;
+    executorId?: number;
+    department?: string;
+    overdue?: string;
+}
+
+export const getRequests = (filters: RequestFilters = {}): Request[] => {
     let result = [...requests];
 
     if (filters.status) {
@@ -15,8 +24,7 @@ const getRequests = (filters = {}) => {
     }
 
     if (filters.executorId) {
-        const id = Number(filters.executorId);
-        result = result.filter(r => r.executorId === id);
+        result = result.filter(r => r.executorId === filters.executorId);
     }
 
     if (filters.department) {
@@ -34,18 +42,26 @@ const getRequests = (filters = {}) => {
     return result;
 };
 
-const createRequest = (data) => {
+interface CreateRequestData {
+    number?: string;
+    authorId: number;
+    executorId: number;
+    description: string;
+    deadline: string;
+}
 
-    if (!getEmployeeById(data.authorId)) {
-        throw new Error('Автор не найден');
-    }
-    if (!getEmployeeById(data.executorId)) {
-        throw new Error('Исполнитель не найден');
-    }
+export const createRequest = (data: CreateRequestData): Request => {
+    const author = getEmployeeById(data.authorId);
+    if (!author) throw new Error('Автор не найден');
 
-    const newRequest = {
-        id: nextRequestId++,
-        number: data.number || `REQ-${String(nextRequestId).padStart(3, '0')}`,
+    const executor = getEmployeeById(data.executorId);
+    if (!executor) throw new Error('Исполнитель не найден');
+
+    const newId = getNextRequestId();
+
+    const newRequest: Request = {
+        id: newId,
+        number: data.number || `REQ-${String(newId).padStart(3, '0')}`,
         createdAt: new Date(),
         authorId: data.authorId,
         executorId: data.executorId,
@@ -58,11 +74,9 @@ const createRequest = (data) => {
     return newRequest;
 };
 
-const updateStatus = (requestId, newStatus) => {
+export const updateStatus = (requestId: number, newStatus: Status): Request => {
     const request = requests.find(r => r.id === requestId);
-    if (!request) {
-        throw new Error('Заявка не найдена');
-    }
+    if (!request) throw new Error('Заявка не найдена');
 
     const currentStatus = request.status;
     const allowed = allowedStatusTransitions[currentStatus] || [];
@@ -74,11 +88,9 @@ const updateStatus = (requestId, newStatus) => {
     return request;
 };
 
-const updateExecutor = (requestId, newExecutorId) => {
+export const updateExecutor = (requestId: number, newExecutorId: number): Request => {
     const request = requests.find(r => r.id === requestId);
-    if (!request) {
-        throw new Error('Заявка не найдена');
-    }
+    if (!request) throw new Error('Заявка не найдена');
 
     if (!getEmployeeById(newExecutorId)) {
         throw new Error('Исполнитель не найден');
@@ -92,18 +104,26 @@ const updateExecutor = (requestId, newExecutorId) => {
     return request;
 };
 
-const getReports = () => {
+interface Report {
+    total: number;
+    statusCounts: Record<Status, number>;
+    overdue: number;
+    doneByExecutor: Record<string, number>;
+}
+
+export const getReports = (): Report => {
     const total = requests.length;
-    const statusCounts = {
-        new: requests.filter(r => r.status === 'new').length,
-        in_progress: requests.filter(r => r.status === 'in_progress').length,
-        done: requests.filter(r => r.status === 'done').length,
+    const statusCounts: Record<Status, number> = {
+        new: 0,
+        in_progress: 0,
+        done: 0,
     };
+    requests.forEach(r => statusCounts[r.status]++);
 
     const now = new Date();
     const overdue = requests.filter(r => r.status !== 'done' && new Date(r.deadline) < now).length;
 
-    const doneByExecutor = {};
+    const doneByExecutor: Record<string, number> = {};
     requests
         .filter(r => r.status === 'done')
         .forEach(r => {
@@ -112,18 +132,5 @@ const getReports = () => {
             doneByExecutor[name] = (doneByExecutor[name] || 0) + 1;
         });
 
-    return {
-        total,
-        statusCounts,
-        overdue,
-        doneByExecutor,
-    };
-};
-
-module.exports = {
-    getRequests,
-    createRequest,
-    updateStatus,
-    updateExecutor,
-    getReports,
+    return { total, statusCounts, overdue, doneByExecutor };
 };

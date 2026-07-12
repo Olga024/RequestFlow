@@ -1,7 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-const employeeRoutes = require('./routes/employeeRoutes');
-const requestRoutes = require('./routes/requestRoutes');
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import employeeRoutes from './routes/employeeRoutes';
+import requestRoutes from './routes/requestRoutes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,7 +13,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api', requestRoutes);
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', message: 'Мок-сервер работает' });
 });
 
