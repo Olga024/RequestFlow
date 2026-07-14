@@ -1,4 +1,4 @@
-import type { TEmployee, TRequestFilters } from '../types';
+import type { TEmployee, TReport, TRequestFilters } from '../types';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -68,7 +68,7 @@ export const updateRequestExecutor = (id: number, executorId: number): Promise<R
         });
 };
 
-export const fetchReport = (): Promise<Report> => {
+export const fetchReport = (): Promise<TReport> => {
     return fetch(`${API_BASE}/reports`)
         .then(response => {
             if (!response.ok) throw new Error('Ошибка загрузки отчёта');
