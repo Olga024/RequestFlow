@@ -1,18 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRequests } from '../context/RequestsContext';
-import { useEmployees } from '../context/EmployeesContext';
+import { useDataContext } from '../context/DataContext';
 
-export const RequestCreate = () => {
+
+export const CreateIssue = () => {
     const navigate = useNavigate();
-    const { addRequest } = useRequests();
-    const { employees } = useEmployees();
+    const {employeesList, addIssue} = useDataContext();
 
     const [form, setForm] = useState({
         description: '',
         deadline: '',
-        executorId: employees.length > 0 ? employees[0].id : 0,
-        authorId: employees.length > 1 ? employees[1].id : (employees.length > 0 ? employees[0].id : 0),
+        executorId: employeesList.length > 0 ? employeesList[0].id : 0,
+        authorId: employeesList.length > 1 ? employeesList[1].id : (employeesList.length > 0 ? employeesList[0].id : 0),
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -34,7 +33,7 @@ export const RequestCreate = () => {
                 return;
             }
 
-            addRequest({
+            addIssue({
                 authorId: form.authorId,
                 executorId: form.executorId,
                 description: form.description,
@@ -49,7 +48,7 @@ export const RequestCreate = () => {
                     setLoading(false);
                 });
         },
-        [form, addRequest, navigate]
+        [form, addIssue, navigate]
     );
 
     return (
@@ -63,7 +62,7 @@ export const RequestCreate = () => {
                         onChange={(e) => setForm({ ...form, authorId: Number(e.target.value) })}
                         required
                     >
-                        {employees.map((emp) => (
+                        {employeesList.map((emp) => (
                             <option key={emp.id} value={emp.id}>
                                 {emp.fullName}
                             </option>
@@ -78,7 +77,7 @@ export const RequestCreate = () => {
                         onChange={(e) => setForm({ ...form, executorId: Number(e.target.value) })}
                         required
                     >
-                        {employees.map((emp) => (
+                        {employeesList.map((emp) => (
                             <option key={emp.id} value={emp.id}>
                                 {emp.fullName}
                             </option>

@@ -1,4 +1,4 @@
-export type TStatus = 'new' | 'in_progress' | 'done';
+export type TIssueStatus = 'new' | 'in_progress' | 'done';
 
 export type TEmployee = {
     id: number;
@@ -7,19 +7,23 @@ export type TEmployee = {
     position: string;
 };
 
-export type TRequest = {
-    id: number;
-    number: string;
+export type TNewIssue = {
     createdAt: string;
     authorId: number;
     executorId: number;
     description: string;
     deadline: string;
-    status: TStatus;
+
 };
 
-export type TRequestFilters = {
-    status?: TStatus;
+export type TIssue = TNewIssue & {
+    id: number;
+    number:string;
+    status: TIssueStatus;
+};
+
+export type TIssuesFilters = {
+    status?: TIssueStatus;
     executorId?: number;
     department?: string;
     overdue?: string;
@@ -27,7 +31,7 @@ export type TRequestFilters = {
 
 export type TReport = {
     total: number;
-    statusCounts: Record<TStatus, number>;
+    statusCounts: Record<TIssueStatus, number>;
     overdue: number;
-    doneByExecutor: Record<string, number>;
+    doneByExecutor: Record<TIssueStatus, number>;
 };

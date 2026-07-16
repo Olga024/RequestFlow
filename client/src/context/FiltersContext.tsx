@@ -1,18 +1,18 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { TRequestFilters } from '../types';
+import type { TIssuesFilters } from '../types';
 
 type TFiltersContextType = {
-  filters: TRequestFilters;
-  setFilters: (newFilters: TRequestFilters) => void;
+  filters: TIssuesFilters;
+  setFilters: (newFilters: TIssuesFilters) => void;
   resetFilters: () => void;
 };
 
-const defaultFilters: TRequestFilters = {};
+const defaultFilters: TIssuesFilters = {};
 
 const FiltersContext = createContext<TFiltersContextType | undefined>(undefined);
 
 export const FiltersProvider = ({ children }: { children: ReactNode }) => {
-  const [filters, setFilters] = useState<TRequestFilters>(defaultFilters);
+  const [filters, setFilters] = useState<TIssuesFilters>(defaultFilters);
 
   const resetFilters = () => setFilters({});
 

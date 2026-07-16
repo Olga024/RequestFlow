@@ -1,32 +1,40 @@
 import { useEffect } from 'react';
-import { useRequests } from '../context/RequestsContext';
 import { useFilters } from '../context/FiltersContext';
-import { useEmployees } from '../context/EmployeesContext';
-import type { TStatus } from '../types';
+import type { TIssueStatus } from '../types';
+import { useDataContext } from '../context/DataContext';
 
-export const RequestsList = () => {
-    const { requests, loading, error, loadRequests, changeStatus, changeExecutor } = useRequests();
+export const IssuesList = () => {
     const { filters, setFilters, resetFilters } = useFilters();
-    const { employees } = useEmployees();
+
+    const {
+        loadIssuesList,
+        changeIssueExecutor,
+        changeIssueStatus,
+        employeesList,
+        loadingIssuesList,
+        issueError,
+        issuesList,
+    } = useDataContext();
 
     useEffect(() => {
-        loadRequests(filters);
+        loadIssuesList(filters);
+        loadIssuesList(filters);
     }, [filters]);
 
-    const handleStatusChange = (id: number, newStatus: TStatus) => {
-        changeStatus(id, newStatus)
-            .then(() => loadRequests(filters))
+    const handleStatusChange = (id: number, newStatus: TIssueStatus) => {
+        changeIssueStatus(id, newStatus)
+            .then(() => loadIssuesList(filters))
             .catch(console.error);
     };
 
     const handleExecutorChange = (id: number, executorId: number) => {
-        changeExecutor(id, executorId)
-            .then(() => loadRequests(filters))
+        changeIssueExecutor(id, executorId)
+            .then(() => loadIssuesList(filters))
             .catch(console.error);
     };
 
     const getEmployeeName = (id: number) => {
-        const emp = employees.find(e => e.id === id);
+        const emp = employeesList.find(e => e.id === id);
         return emp ? emp.fullName : 'Неизвестно';
     };
 
@@ -40,12 +48,12 @@ export const RequestsList = () => {
         });
     };
 
-    const isOverdue = (deadline: string, status: TStatus) => {
+    const isOverdue = (deadline: string, status: TIssueStatus) => {
         return status !== 'done' && new Date(deadline) < new Date();
     };
 
-    const statusOptions: TStatus[] = ['new', 'in_progress', 'done'];
-    const statusLabels: Record<TStatus, string> = {
+    const statusOptions: TIssueStatus[] = ['new', 'in_progress', 'done'];
+    const statusLabels: Record<TIssueStatus, string> = {
         new: 'Новая',
         in_progress: 'В работе',
         done: 'Выполнена',
@@ -54,12 +62,10 @@ export const RequestsList = () => {
     return (
         <div>
             <h2>Список заявок</h2>
-
-            {/* Панель фильтров */}
             <div className="filters">
                 <select
                     value={filters.status || ''}
-                    onChange={(e) => setFilters({ ...filters, status: e.target.value as TStatus || undefined })}
+                    onChange={(e) => setFilters({ ...filters, status: e.target.value as TIssueStatus || undefined })}
                 >
                     <option value="">Все статусы</option>
                     {statusOptions.map(s => (
@@ -72,7 +78,7 @@ export const RequestsList = () => {
                     onChange={(e) => setFilters({ ...filters, executorId: Number(e.target.value) || undefined })}
                 >
                     <option value="">Все исполнители</option>
-                    {employees.map(emp => (
+                    {employeesList.map(emp => (
                         <option key={emp.id} value={emp.id}>{emp.fullName}</option>
                     ))}
                 </select>
@@ -82,7 +88,7 @@ export const RequestsList = () => {
                     onChange={(e) => setFilters({ ...filters, department: e.target.value || undefined })}
                 >
                     <option value="">Все подразделения</option>
-                    {Array.from(new Set(employees.map(e => e.department))).map(dept => (
+                    {Array.from(new Set(employeesList.map(e => e.department))).map(dept => (
                         <option key={dept} value={dept}>{dept}</option>
                     ))}
                 </select>
@@ -98,13 +104,9 @@ export const RequestsList = () => {
 
                 <button onClick={resetFilters}>Сбросить</button>
             </div>
-
-            {/* Состояния загрузки/ошибки */}
-            {loading && <div className="loading">Загрузка...</div>}
-            {error && <div className="error">Ошибка: {error}</div>}
-
-            {/* Таблица заявок */}
-            {!loading && !error && (
+            {loadingIssuesList && <div className="loading">Загрузка...</div>}
+            {issueError && <div className="error">Ошибка: {issueError}</div>}
+            {!loadingIssuesList && !issueError && (
                 <table className="requests-table">
                     <thead>
                         <tr>
@@ -119,10 +121,10 @@ export const RequestsList = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {requests.length === 0 ? (
+                        {issuesList.length === 0 ? (
                             <tr><td colSpan={8}>Нет заявок</td></tr>
                         ) : (
-                            requests.map(req => (
+                            issuesList.map(req => (
                                 <tr key={req.id} className={isOverdue(req.deadline, req.status) ? 'overdue' : ''}>
                                     <td>{req.number}</td>
                                     <td>{formatDate(req.createdAt)}</td>
@@ -136,10 +138,9 @@ export const RequestsList = () => {
                                         </span>
                                     </td>
                                     <td>
-                                        {/* Смена статуса */}
                                         <select
                                             value={req.status}
-                                            onChange={(e) => handleStatusChange(req.id, e.target.value as TStatus)}
+                                            onChange={(e) => handleStatusChange(req.id, e.target.value as TIssueStatus)}
                                         >
                                             {statusOptions.map(s => (
                                                 <option key={s} value={s} disabled={s === req.status}>
@@ -147,13 +148,11 @@ export const RequestsList = () => {
                                                 </option>
                                             ))}
                                         </select>
-
-                                        {/* Смена исполнителя */}
                                         <select
                                             value={req.executorId}
                                             onChange={(e) => handleExecutorChange(req.id, Number(e.target.value))}
                                         >
-                                            {employees.map(emp => (
+                                            {employeesList.map(emp => (
                                                 <option key={emp.id} value={emp.id}>
                                                     {emp.fullName}
                                                 </option>

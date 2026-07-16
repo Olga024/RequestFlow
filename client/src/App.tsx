@@ -1,7 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import './App.css'
-import { RequestsList } from './pages/RequestsList'
-import { RequestCreate } from './pages/RequestCreate'
+import { IssuesList } from './pages/IssuesList'
+import { CreateIssue } from './pages/CreateIssue'
 import { EmployeesList } from './pages/EmployeesList'
 import { Reports } from './pages/Reports'
 
@@ -17,8 +17,8 @@ function App() {
       </nav>
       <div className="app-content">
         <Routes>
-          <Route path="/" element={<RequestsList />} />
-          <Route path="/create" element={<RequestCreate />} />
+          <Route path="/" element={<IssuesList />} />
+          <Route path="/create" element={<CreateIssue />} />
           <Route path="/employees" element={<EmployeesList />} />
           <Route path="/reports" element={<Reports />} />
         </Routes>

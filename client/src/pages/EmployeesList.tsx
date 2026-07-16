@@ -1,15 +1,35 @@
-import { useEmployees } from '../context/EmployeesContext';
+import { useEffect, useState } from 'react';
+import { useDataContext } from '../context/DataContext';
 
 export const EmployeesList = () => {
-    const { employees, loading, error } = useEmployees();
+    const [displayState, setDisplayState] = useState<'list' | 'idle' | 'error'>()
+    const {
+        employeesList,
+        employeesListloading,
+        employeesError,
+    } = useDataContext();
 
-    if (loading) return <div>Загрузка сотрудников...</div>;
-    if (error) return <div>Ошибка: {error}</div>;
+    useEffect(() => {
+        if (employeesError) {
+            setDisplayState('error');
+        } else if (employeesListloading) {
+            setDisplayState('idle');
+        } else {
+            setDisplayState('list');
+        }
+    }, [
+        employeesError,
+        employeesListloading,
+        employeesList,
+        setDisplayState
+    ]);
 
     return (
         <div>
             <h2>Справочник сотрудников</h2>
-            <table className="employees-table">
+            {displayState == 'idle' && <div>Загрузка сотрудников...</div>}
+            {displayState == 'error' && <div>Ошибка: {employeesError}</div>}
+            {displayState == 'list' && <table className="employees-table">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -19,7 +39,7 @@ export const EmployeesList = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {employees.map(emp => (
+                    {employeesList.map(emp => (
                         <tr key={emp.id}>
                             <td>{emp.id}</td>
                             <td>{emp.fullName}</td>
@@ -28,7 +48,7 @@ export const EmployeesList = () => {
                         </tr>
                     ))}
                 </tbody>
-            </table>
+            </table>}
         </div>
     );
 };
