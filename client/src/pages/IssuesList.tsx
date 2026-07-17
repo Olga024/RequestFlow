@@ -121,10 +121,10 @@ export const IssuesList = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {issuesList.length === 0 ? (
+                        {issuesList?.length === 0 ? (
                             <tr><td colSpan={8}>Нет заявок</td></tr>
                         ) : (
-                            issuesList.map(req => (
+                            issuesList?.map(req => (
                                 <tr key={req.id} className={isOverdue(req.deadline, req.status) ? 'overdue' : ''}>
                                     <td>{req.number}</td>
                                     <td>{formatDate(req.createdAt)}</td>

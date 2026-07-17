@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { TEmployee, TIssue, TIssuesFilters, TNewIssue, TIssueStatus } from "../types";
-import { fetchCreateIssue, fetchEmployees, fetchRequests, updateIssueStatus, updateIssueExecutor } from "../api/api";
+import { fetchCreateIssue, fetchEmployees, fetchIssuesList, updateIssueStatus, updateIssueExecutor } from "../api/api";
 
 type TDataContextType = {
     employeesList: TEmployee[];
@@ -14,7 +14,6 @@ type TDataContextType = {
     addIssue: (newIssueData: Omit<TNewIssue, 'createdAt'>) => Promise<void>;
     changeIssueStatus: (id: number, status: TIssueStatus) => Promise<void>;
     changeIssueExecutor: (id: number, executorId: number) => Promise<void>;
-
 };
 
 const DataContext = createContext<TDataContextType | undefined>(undefined);
@@ -28,6 +27,9 @@ export const DataContextProvider = ({ children }: { children: ReactNode }) => {
     const [issueError, setIssueError] = useState<TDataContextType['issueError']>(null);
 
     const loadEmployeesList = () => {
+        if (employeesListloading) {
+            return;
+        }
         setEmployeesError(null);
         setEmployeesListloading(true);
         fetchEmployees()
@@ -44,7 +46,7 @@ export const DataContextProvider = ({ children }: { children: ReactNode }) => {
     const loadIssuesList: TDataContextType['loadIssuesList'] = (filters) => {
         setLoadingIssuesList(true);
         setIssueError(null);
-        fetchRequests(filters)
+        fetchIssuesList(filters)
             .then((data) => {
                 setIssuesList(data);
                 setLoadingIssuesList(false);
@@ -92,8 +94,8 @@ export const DataContextProvider = ({ children }: { children: ReactNode }) => {
     });
 
     useEffect(() => {
-        fetchEmployees();
-    }, [fetchEmployees]);
+        loadEmployeesList();
+    }, [loadEmployeesList]);
 
     return (
         <DataContext.Provider value={{
