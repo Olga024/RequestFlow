@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import * as requestService from '../services/requestService';
+import * as requestService from '../services/issuesService';
 
 export const getRequests = (req: Request, res: Response): void => {
     try {
-        const filters = req.query;
-        const requests = requestService.getRequests(filters);
+        const { filters, order, pagination } = req.query;
+        const requests = requestService.getIssuesList({ filters, order, pagination } as any);
         res.json(requests);
     } catch (error) {
         res.status(500).json({ error: (error as Error).message });
@@ -14,7 +14,7 @@ export const getRequests = (req: Request, res: Response): void => {
 export const createRequest = (req: Request, res: Response): void => {
     try {
         const data = req.body;
-        const newRequest = requestService.createRequest(data);
+        const newRequest = requestService.createIssue(data);
         res.status(201).json(newRequest);
     } catch (error) {
         res.status(400).json({ error: (error as Error).message });
@@ -48,14 +48,5 @@ export const updateExecutor = (req: Request, res: Response): void => {
         res.json(updated);
     } catch (error) {
         res.status(400).json({ error: (error as Error).message });
-    }
-};
-
-export const getReports = (req: Request, res: Response): void => {
-    try {
-        const report = requestService.getReports();
-        res.json(report);
-    } catch (error) {
-        res.status(500).json({ error: (error as Error).message });
     }
 };
