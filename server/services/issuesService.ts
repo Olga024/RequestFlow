@@ -12,8 +12,8 @@ export const getIssuesList = ({
     order = 'ASC',
     filters,
     pagination = {
-        pageSize: 0,
-        startFrom: 100,
+        pageSize: 50,
+        startFrom: 0,
     }
 }: {
     filters?: TIssuesFilters,

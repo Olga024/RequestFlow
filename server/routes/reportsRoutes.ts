@@ -3,6 +3,6 @@ import { getReports } from "../services/reportsService";
 
 const router = Router();
 
-router.get('/reports', getReports);
+router.get('/', getReports);
 
 export default router;
