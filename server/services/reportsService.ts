@@ -1,6 +1,6 @@
 import { TIssueStatus, TReport } from "../types/common";
 
-export const getReports = (): TReport => {
+export const getReports = async (): Promise<TReport> => {
     let total = 0,
         overdue = 0,
         doneByExecutor = {},

@@ -22,9 +22,11 @@ export const getIssuesList = ({
 }) => new Promise<TIssue[]>((resolve, reject) => {
     pool.connect()
         .then((client) => {
-            client.query<TIssue>(`SELECT * FROM requestflow_schema.issues 
-            LIMIT ${pagination.pageSize} OFFSET ${pagination.startFrom * pagination.pageSize}
-            ORDER BY id ${order} `)
+            client.query<TIssue>(`
+                SELECT * FROM requestflow_schema.issues 
+                ORDER BY id ${order} 
+                LIMIT ${pagination.pageSize} OFFSET ${pagination.startFrom * pagination.pageSize}
+            `)
                 .then((result) => {
                     resolve(result.rows);
                 })
@@ -39,14 +41,14 @@ export const getIssuesList = ({
 export const getIssueById = (issueId: number) => new Promise<TIssue>((resolve, reject) => {
     pool.connect()
         .then((client) => {
-            client.query<TIssue>(`SELECT * FROM requestflow_schema.issues WHERE id = '${issueId}' `)
+            client.query<TIssue>(`SELECT * FROM requestflow_schema.issues WHERE id = $1`, [issueId])
                 .then(({ rows: [issue] }) => {
                     if (!issue) {
                         throw new Error('Заявка не найдена');
                     }
                     resolve(issue);
                 })
-                .catch((error) => { throw new Error(error); })
+                .catch(reject)
                 .finally(() => {
                     client.release();
                 })
@@ -66,11 +68,10 @@ export const createIssue = (data: TNewIssueData) => new Promise((resolve, reject
             pool.connect()
                 .then((client) => {
                     client.query(`
-      INSERT INTO requestflow_schema.issues (number, author_id, executor_id, description, deadline, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (number) DO NOTHING`,
-                        [issueNumber, author, executor, data.description, data.deadline, 'new']
-                    )
+                        INSERT INTO requestflow_schema.issues (number, author_id, executor_id, description, deadline, status)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                        ON CONFLICT (number) DO NOTHING
+                    `, [issueNumber, author.id, executor.id, data.description, data.deadline, 'new'])
                         .then((result) => {
                             resolve(result.rows);
                         })
@@ -94,11 +95,17 @@ export const updateStatus = (issueId: number, newStatus: TIssueStatus) => new Pr
             }
             pool.connect()
                 .then((client) => {
-                    client.query(`UPDATE requestflow_schema.issues WHERE id = '${issueId}' SET status = '${newStatus}`)
+                    client.query(
+                        `UPDATE requestflow_schema.issues SET status = $1 WHERE id = $2 RETURNING *`,
+                        [newStatus, issueId]
+                    )
                         .then(({ rows: [issueUpdated] }) => {
+                            if (!issueUpdated) {
+                                throw new Error('Заявка не найдена');
+                            }
                             resolve(issueUpdated);
                         })
-                        .catch((error) => { throw new Error(error); })
+                        .catch(reject)
                         .finally(() => {
                             client.release();
                         });
@@ -122,11 +129,14 @@ export const updateExecutor = (issueId: number, newExecutorId: number) => new Pr
 
             pool.connect()
                 .then((client) => {
-                    client.query(`UPDATE requestflow_schema.issues WHERE id = '${issueId}' SET executor_id = '${newExecutorId}`)
+                    client.query(
+                        `UPDATE requestflow_schema.issues SET executor_id = $1 WHERE id = $2 RETURNING *`,
+                        [newExecutorId, issueId]
+                    )
                         .then(({ rows: [issueUpdated] }) => {
                             resolve(issueUpdated);
                         })
-                        .catch((error) => { throw new Error(error); })
+                        .catch(reject)
                         .finally(() => {
                             client.release();
                         });
