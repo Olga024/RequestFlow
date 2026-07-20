@@ -27,9 +27,6 @@ export const DataContextProvider = ({ children }: { children: ReactNode }) => {
     const [issueError, setIssueError] = useState<TDataContextType['issueError']>(null);
 
     const loadEmployeesList = () => {
-        if (employeesListloading) {
-            return;
-        }
         setEmployeesError(null);
         setEmployeesListloading(true);
         fetchEmployees()
@@ -95,7 +92,7 @@ export const DataContextProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         loadEmployeesList();
-    }, [loadEmployeesList]);
+    }, []);
 
     return (
         <DataContext.Provider value={{

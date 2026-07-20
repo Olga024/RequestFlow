@@ -18,7 +18,6 @@ export const IssuesList = () => {
 
     useEffect(() => {
         loadIssuesList(filters);
-        loadIssuesList(filters);
     }, [filters]);
 
     const handleStatusChange = (id: number, newStatus: TIssueStatus) => {
