@@ -10,7 +10,7 @@ const allowedStatusTransitions: Record<TIssueStatus, TIssueStatus[]> = {
 
 export const getIssuesList = ({
     order = 'ASC',
-    filters,
+    filters = {},
     pagination = {
         pageSize: 50,
         startFrom: 0,
@@ -22,18 +22,50 @@ export const getIssuesList = ({
 }) => new Promise<TIssue[]>((resolve, reject) => {
     pool.connect()
         .then((client) => {
-            client.query<TIssue>(`
-                SELECT * FROM requestflow_schema.issues 
-                ORDER BY id ${order} 
-                LIMIT ${pagination.pageSize} OFFSET ${pagination.startFrom * pagination.pageSize}
-            `)
+            let sql = `
+                SELECT 
+                    i.id,
+                    i.number,
+                    i.created_at AS "createdAt",
+                    i.author_id AS "authorId",
+                    i.executor_id AS "executorId",
+                    i.description,
+                    i.deadline,
+                    i.status
+                FROM requestflow_schema.issues i
+            `;
+            const conditions: string[] = [];
+            const values: any[] = [];
+            let paramIndex = 1;
+
+            if (filters.status) {
+                conditions.push(`i.status = $${paramIndex++}`);
+                values.push(filters.status);
+            }
+            if (filters.executorId) {
+                conditions.push(`i.executor_id = $${paramIndex++}`);
+                values.push(filters.executorId);
+            }
+            if (filters.department) {
+                sql += ` JOIN requestflow_schema.employees e ON i.executor_id = e.id`;
+                conditions.push(`e.department = $${paramIndex++}`);
+                values.push(filters.department);
+            }
+            if (filters.overdue === 'true') {
+                conditions.push(`i.deadline < NOW() AND i.status != 'done'`);
+            }
+            if (conditions.length > 0) {
+                sql += ` WHERE ` + conditions.join(' AND ');
+            }
+            sql += ` ORDER BY i.id ${order} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+            values.push(pagination.pageSize, pagination.startFrom * pagination.pageSize);
+
+            client.query<TIssue>(sql, values)
                 .then((result) => {
                     resolve(result.rows);
                 })
                 .catch(reject)
-                .finally(() => {
-                    client.release();
-                })
+                .finally(() => client.release());
         })
         .catch(reject);
 });
@@ -41,7 +73,18 @@ export const getIssuesList = ({
 export const getIssueById = (issueId: number) => new Promise<TIssue>((resolve, reject) => {
     pool.connect()
         .then((client) => {
-            client.query<TIssue>(`SELECT * FROM requestflow_schema.issues WHERE id = $1`, [issueId])
+            client.query<TIssue>(`
+    SELECT 
+        id,
+        number,
+        created_at AS "createdAt",
+        author_id AS "authorId",
+        executor_id AS "executorId",
+        description,
+        deadline,
+        status
+    FROM requestflow_schema.issues WHERE id = $1
+`, [issueId])
                 .then(({ rows: [issue] }) => {
                     if (!issue) {
                         throw new Error('Заявка не найдена');
@@ -56,7 +99,7 @@ export const getIssueById = (issueId: number) => new Promise<TIssue>((resolve, r
         .catch(reject);
 });
 
-export const createIssue = (data: TNewIssueData) => new Promise((resolve, reject) => {
+export const createIssue = (data: TNewIssueData) => new Promise<TIssue>((resolve, reject) => {
     Promise.all([
         getEmployeeById(data.authorId),
         getEmployeeById(data.executorId),
@@ -64,21 +107,37 @@ export const createIssue = (data: TNewIssueData) => new Promise((resolve, reject
         .then(([author, executor]) => {
             if (!author) throw new Error('Автор не найден');
             if (!executor) throw new Error('Исполнитель не найден');
-            const issueNumber = `ISSUE-${Date.now()}`;
+            // Уникальный номер с временной меткой и случайной частью
+            const issueNumber = `ISSUE-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
             pool.connect()
                 .then((client) => {
-                    client.query(`
+                    client.query(
+                        `
                         INSERT INTO requestflow_schema.issues (number, author_id, executor_id, description, deadline, status)
                         VALUES ($1, $2, $3, $4, $5, $6)
                         ON CONFLICT (number) DO NOTHING
-                    `, [issueNumber, author.id, executor.id, data.description, data.deadline, 'new'])
+                        RETURNING 
+                            id,
+                            number,
+                            created_at AS "createdAt",
+                            author_id AS "authorId",
+                            executor_id AS "executorId",
+                            description,
+                            deadline,
+                            status
+                        `,
+                        [issueNumber, author.id, executor.id, data.description, data.deadline, 'new']
+                    )
                         .then((result) => {
-                            resolve(result.rows);
+                            if (result.rows.length === 0) {
+                                throw new Error('Не удалось создать заявку (возможно, дубликат номера)');
+                            }
+                            resolve(result.rows[0]); // возвращаем объект TIssue
                         })
                         .catch(reject)
                         .finally(() => {
                             client.release();
-                        })
+                        });
                 })
                 .catch(reject);
         })
@@ -96,14 +155,27 @@ export const updateStatus = (issueId: number, newStatus: TIssueStatus) => new Pr
             pool.connect()
                 .then((client) => {
                     client.query(
-                        `UPDATE requestflow_schema.issues SET status = $1 WHERE id = $2 RETURNING *`,
+                        `
+                        UPDATE requestflow_schema.issues 
+                        SET status = $1 
+                        WHERE id = $2 
+                        RETURNING 
+                            id,
+                            number,
+                            created_at AS "createdAt",
+                            author_id AS "authorId",
+                            executor_id AS "executorId",
+                            description,
+                            deadline,
+                            status
+                        `,
                         [newStatus, issueId]
                     )
-                        .then(({ rows: [issueUpdated] }) => {
-                            if (!issueUpdated) {
+                        .then(({ rows }) => {
+                            if (rows.length === 0) {
                                 throw new Error('Заявка не найдена');
                             }
-                            resolve(issueUpdated);
+                            resolve(rows[0]);
                         })
                         .catch(reject)
                         .finally(() => {
@@ -115,7 +187,7 @@ export const updateStatus = (issueId: number, newStatus: TIssueStatus) => new Pr
         .catch(reject);
 });
 
-export const updateExecutor = (issueId: number, newExecutorId: number) => new Promise((resolve, reject) => {
+export const updateExecutor = (issueId: number, newExecutorId: number) => new Promise<TIssue>((resolve, reject) => {
     Promise.all([
         getIssueById(issueId),
         getEmployeeById(newExecutorId),
@@ -130,11 +202,27 @@ export const updateExecutor = (issueId: number, newExecutorId: number) => new Pr
             pool.connect()
                 .then((client) => {
                     client.query(
-                        `UPDATE requestflow_schema.issues SET executor_id = $1 WHERE id = $2 RETURNING *`,
+                        `
+                        UPDATE requestflow_schema.issues 
+                        SET executor_id = $1 
+                        WHERE id = $2 
+                        RETURNING 
+                            id,
+                            number,
+                            created_at AS "createdAt",
+                            author_id AS "authorId",
+                            executor_id AS "executorId",
+                            description,
+                            deadline,
+                            status
+                        `,
                         [newExecutorId, issueId]
                     )
-                        .then(({ rows: [issueUpdated] }) => {
-                            resolve(issueUpdated);
+                        .then(({ rows }) => {
+                            if (rows.length === 0) {
+                                throw new Error('Заявка не найдена');
+                            }
+                            resolve(rows[0]);
                         })
                         .catch(reject)
                         .finally(() => {
