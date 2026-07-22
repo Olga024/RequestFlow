@@ -7,7 +7,8 @@ type TFiltersContextType = {
   resetFilters: () => void;
 };
 
-const defaultFilters: TIssuesFilters = {};
+const defaultFilters: TIssuesFilters = {  
+};
 
 const FiltersContext = createContext<TFiltersContextType | undefined>(undefined);
 

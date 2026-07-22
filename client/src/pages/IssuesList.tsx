@@ -1,9 +1,14 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFilters } from '../context/FiltersContext';
-import type { TIssueStatus } from '../types';
+import type { TIssueStatus, TPagination } from '../types';
 import { useDataContext } from '../context/DataContext';
+import { PaginationBar } from '../components/PaginationBar';
 
 export const IssuesList = () => {
+    const [pagination, setPagination] = useState<TPagination>({
+        pageSize: 50,
+        currentPage: 1
+    })
     const { filters, setFilters, resetFilters } = useFilters();
 
     const {
@@ -16,19 +21,29 @@ export const IssuesList = () => {
         issuesList,
     } = useDataContext();
 
+    const onPaginationChange = useCallback((newPagination: Partial<TPagination>) => {
+        setPagination((prev) => {
+            const upd = { ...prev, ...newPagination };
+            if (newPagination.pageSize && prev.pageSize != newPagination.pageSize) {
+                upd.currentPage = 1;
+            }
+            return upd;
+        });
+    }, [setPagination])
+
     useEffect(() => {
-        loadIssuesList(filters);
-    }, [filters]);
+        loadIssuesList({ filters, pagination });
+    }, [filters, pagination]);
 
     const handleStatusChange = (id: number, newStatus: TIssueStatus) => {
         changeIssueStatus(id, newStatus)
-            .then(() => loadIssuesList(filters))
+            .then(() => loadIssuesList({ filters }))
             .catch(console.error);
     };
 
     const handleExecutorChange = (id: number, executorId: number) => {
         changeIssueExecutor(id, executorId)
-            .then(() => loadIssuesList(filters))
+            .then(() => loadIssuesList({ filters }))
             .catch(console.error);
     };
 
@@ -105,7 +120,14 @@ export const IssuesList = () => {
             </div>
             {loadingIssuesList && <div className="loading">Загрузка...</div>}
             {issueError && <div className="error">Ошибка: {issueError}</div>}
-            {!loadingIssuesList && !issueError && (
+            {!loadingIssuesList && !issueError && (<>
+                <PaginationBar
+                    pageSize={pagination.pageSize}
+                    totalRecords={1000000}
+                    currentPage={pagination.currentPage}
+                    onPageChange={(newPage) => onPaginationChange({ currentPage: newPage })}
+                    onPageSizeChange={(newPageSize) => { onPaginationChange({ pageSize: newPageSize }) }}
+                />
                 <table className="requests-table">
                     <thead>
                         <tr>
@@ -163,7 +185,14 @@ export const IssuesList = () => {
                         )}
                     </tbody>
                 </table>
-            )}
+                <PaginationBar
+                    pageSize={pagination.pageSize}
+                    totalRecords={1000000}
+                    currentPage={pagination.currentPage}
+                    onPageChange={(newPage) => onPaginationChange({ currentPage: newPage })}
+                    onPageSizeChange={(newPageSize) => { onPaginationChange({ pageSize: newPageSize }) }}
+                />
+            </>)}
         </div>
     );
 };

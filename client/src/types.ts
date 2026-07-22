@@ -35,3 +35,8 @@ export type TReport = {
     overdue: number;
     doneByExecutor: Record<TIssueStatus, number>;
 };
+
+export type TPagination = {
+    pageSize: number;
+    currentPage: number;
+}

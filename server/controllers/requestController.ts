@@ -3,8 +3,12 @@ import * as requestService from '../services/issuesService';
 
 export const getRequests = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { filters, order, pagination } = req.query;
-        const requests = await requestService.getIssuesList({ filters, order, pagination } as any);
+        const { filters, order, pageSize, startFrom } = req.query;
+        const requests = await requestService.getIssuesList({
+            filters,
+            order,
+            pagination: { pageSize, startFrom }
+        } as any);
         res.json(requests);
     } catch (error) {
         res.status(500).json({ error: (error as Error).message });

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { TEmployee, TIssue, TIssuesFilters, TNewIssue, TIssueStatus } from "../types";
+import type { TEmployee, TIssue, TIssuesFilters, TNewIssue, TIssueStatus, TPagination } from "../types";
 import { fetchCreateIssue, fetchEmployees, fetchIssuesList, updateIssueStatus, updateIssueExecutor } from "../api/api";
 
 type TDataContextType = {
@@ -7,7 +7,7 @@ type TDataContextType = {
     loadEmployeesList: () => void;
     employeesListloading: boolean;
     employeesError: string | null;
-    loadIssuesList: (filters?: TIssuesFilters) => void;
+    loadIssuesList: (params?: { filters?: TIssuesFilters, pagination?: TPagination }) => void;
     issuesList: TIssue[];
     loadingIssuesList: boolean;
     issueError: string | null;
@@ -40,10 +40,10 @@ export const DataContextProvider = ({ children }: { children: ReactNode }) => {
             });
     }
 
-    const loadIssuesList: TDataContextType['loadIssuesList'] = (filters) => {
+    const loadIssuesList: TDataContextType['loadIssuesList'] = (params) => {
         setLoadingIssuesList(true);
         setIssueError(null);
-        fetchIssuesList(filters)
+        fetchIssuesList(params)
             .then((data) => {
                 setIssuesList(data);
                 setLoadingIssuesList(false);

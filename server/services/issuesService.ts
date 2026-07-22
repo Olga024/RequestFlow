@@ -32,8 +32,9 @@ export const getIssuesList = ({
                     i.description,
                     i.deadline,
                     i.status
-                FROM requestflow_schema.issues i
+                FROM requestflow_schema.issues i 
             `;
+            //console.log({sql})
             const conditions: string[] = [];
             const values: any[] = [];
             let paramIndex = 1;

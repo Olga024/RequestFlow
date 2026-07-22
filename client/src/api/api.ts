@@ -1,4 +1,4 @@
-import type { TEmployee, TReport, TIssuesFilters, TIssue, TNewIssue } from '../types';
+import type { TEmployee, TReport, TIssuesFilters, TIssue, TNewIssue, TPagination } from '../types';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -15,14 +15,17 @@ export const fetchEmployees = (): Promise<TEmployee[]> => new Promise((resolve, 
         .catch(reject);
 });
 
-export const fetchIssuesList = (filters?: TIssuesFilters): Promise<TIssue[]> => {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.executorId) params.append('executorId', String(filters.executorId));
-    if (filters?.department) params.append('department', filters.department);
-    if (filters?.overdue) params.append('overdue', filters.overdue);
+export const fetchIssuesList = (params?: { filters?: TIssuesFilters | undefined, pagination?: TPagination }): Promise<TIssue[]> => {
+    const { filters, pagination } = params || {};
+    const queryParams = new URLSearchParams();
+    if (filters?.status) queryParams.append('status', filters.status);
+    if (filters?.executorId) queryParams.append('executorId', String(filters.executorId));
+    if (filters?.department) queryParams.append('department', filters.department);
+    if (filters?.overdue) queryParams.append('overdue', filters.overdue);
+    if (pagination?.pageSize) queryParams.append('pageSize', String(pagination.pageSize));
+    if (pagination?.currentPage) queryParams.append('startFrom', String((pagination.currentPage - 1) * pagination?.pageSize));
 
-    const url = `${API_BASE}/requests${params.toString() ? '?' + params.toString() : ''}`;
+    const url = `${API_BASE}/requests${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     return new Promise((resolve, reject) => {
         fetch(url)
             .then(response => {
