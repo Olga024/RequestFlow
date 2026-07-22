@@ -3,10 +3,23 @@ import * as requestService from '../services/issuesService';
 
 export const getRequests = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { filters, order, pageSize, startFrom } = req.query;
-        const requests = await requestService.getIssuesList({
-            filters,
+        const {
+            status,
+            pageSize,
+            startFrom,
             order,
+            executorId,
+            department,
+            overdue,
+        } = req.query;
+        const requests = await requestService.getIssuesList({
+            filters: {
+                executorId,
+                status,
+                department,
+                overdue: overdue == 'true'
+            },
+            order: order || 'ASC',
             pagination: { pageSize, startFrom }
         } as any);
         res.json(requests);
